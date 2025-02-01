@@ -84,3 +84,4 @@ The default value `./db.json` is used if the environment variable is not provide
 
 - [ ] Validate arguments sent to the CLI
 - [ ] Add more tests on address conversion
+- [ ] Improve error messages
