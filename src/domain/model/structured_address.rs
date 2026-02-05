@@ -1,6 +1,6 @@
+use crate::domain::error::AddressError;
 use crate::domain::model::address::Address;
 use crate::domain::model::country::Country;
-use std::io::{Error, ErrorKind};
 
 #[derive(Debug, PartialEq)]
 pub struct StructuredAddress {
@@ -21,7 +21,7 @@ pub struct StructuredAddress {
 }
 
 impl StructuredAddress {
-    pub fn from(address: Address) -> Result<StructuredAddress, Error> {
+    pub fn from(address: Address) -> Result<StructuredAddress, AddressError> {
         let structured_address = StructuredAddress {
             department: address.department,
             sub_department: String::from(""),
@@ -39,14 +39,12 @@ impl StructuredAddress {
             country_sub_division: String::from(""),
         };
 
-        if !structured_address.is_valid() {
-            return Err(Error::new(ErrorKind::InvalidData, "Invalid address"));
-        }
+        structured_address.validate()?;
 
         Ok(structured_address)
     }
 
-    pub fn to_address(&self, id: String) -> Result<Address, Error> {
+    pub fn to_address(&self, id: String) -> Result<Address, AddressError> {
         let country = Country::from(&self.country)?;
 
         Ok(Address {
@@ -66,28 +64,38 @@ impl StructuredAddress {
         })
     }
 
-    fn is_valid(&self) -> bool {
+    fn validate(&self) -> Result<(), AddressError> {
         let max_long_field_length = 70;
         let max_middle_field_length = 35;
         let max_short_field_length = 16;
         let max_country_field_length = 2;
 
-        if self.department.chars().count() > max_long_field_length
-            || self.sub_department.chars().count() > max_long_field_length
-            || self.building_name.chars().count() > max_middle_field_length
-            || self.floor.chars().count() > max_long_field_length
-            || self.room.chars().count() > max_long_field_length
-            || self.street_name.chars().count() > max_long_field_length
-            || self.building_number.chars().count() > max_short_field_length
-            || self.post_box.chars().count() > max_short_field_length
-            || self.town_location_name.chars().count() > max_middle_field_length
-            || self.post_code.chars().count() > max_short_field_length
-            || self.town_name.chars().count() > max_middle_field_length
-            || self.country.chars().count() > max_country_field_length
-        {
-            return false;
+        let fields: [(&str, &str, usize); 12] = [
+            ("department", &self.department, max_long_field_length),
+            ("sub_department", &self.sub_department, max_long_field_length),
+            ("building_name", &self.building_name, max_middle_field_length),
+            ("floor", &self.floor, max_long_field_length),
+            ("room", &self.room, max_long_field_length),
+            ("street_name", &self.street_name, max_long_field_length),
+            ("building_number", &self.building_number, max_short_field_length),
+            ("post_box", &self.post_box, max_short_field_length),
+            ("town_location_name", &self.town_location_name, max_middle_field_length),
+            ("post_code", &self.post_code, max_short_field_length),
+            ("town_name", &self.town_name, max_middle_field_length),
+            ("country", &self.country, max_country_field_length),
+        ];
+
+        for (name, value, max) in fields {
+            let len = value.chars().count();
+            if len > max {
+                return Err(AddressError::ValidationError {
+                    field: name.to_string(),
+                    max,
+                    actual: len,
+                });
+            }
         }
 
-        true
+        Ok(())
     }
 }

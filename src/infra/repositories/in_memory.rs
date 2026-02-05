@@ -1,3 +1,4 @@
+use crate::domain::error::AddressError;
 use crate::domain::model::address::Address;
 use crate::domain::ports::secondary::address_repository::AddressRepository;
 use std::cell::RefCell;
@@ -16,7 +17,7 @@ impl InMemoryAddressRepository {
 }
 
 impl AddressRepository for InMemoryAddressRepository {
-    fn save(&self, address: Address) -> std::io::Result<()> {
+    fn save(&self, address: Address) -> Result<(), AddressError> {
         self.addresses.borrow_mut().push(address);
 
         Ok(())

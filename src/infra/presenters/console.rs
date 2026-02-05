@@ -1,10 +1,10 @@
+use crate::domain::error::AddressError;
 use crate::domain::ports::primary::usecases::{
     ConvertFrenchToStructured, ConvertStructuredToFrench,
 };
 use crate::infra::presenters::arguments::{
     args_to_french_address, args_to_structured_address, Arguments,
 };
-use std::io::Error;
 
 pub struct ConsolePresenter<'a> {
     convert_french_to_structured: ConvertFrenchToStructured<'a>,
@@ -41,6 +41,6 @@ impl<'a> ConsolePresenter<'a> {
     }
 }
 
-fn display_error(error: Error) {
+fn display_error(error: AddressError) {
     eprintln!("{}", error)
 }

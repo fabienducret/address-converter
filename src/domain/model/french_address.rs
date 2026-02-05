@@ -1,6 +1,6 @@
+use crate::domain::error::AddressError;
 use crate::domain::model::address::Address;
 use crate::domain::model::country::Country;
-use std::io::{Error, ErrorKind};
 
 #[derive(Debug, PartialEq)]
 pub struct FrenchAddress {
@@ -14,7 +14,7 @@ pub struct FrenchAddress {
 }
 
 impl FrenchAddress {
-    pub fn from(address: Address) -> Result<FrenchAddress, Error> {
+    pub fn from(address: Address) -> Result<FrenchAddress, AddressError> {
         let french_address = FrenchAddress {
             line_1: address.name,
             line_2: address.department,
@@ -31,14 +31,12 @@ impl FrenchAddress {
             line_7: address.country.long_value(),
         };
 
-        if !french_address.is_valid() {
-            return Err(Error::new(ErrorKind::InvalidData, "Invalid address"));
-        }
+        french_address.validate()?;
 
         Ok(french_address)
     }
 
-    pub fn to_address(&self, id: String) -> Result<Address, Error> {
+    pub fn to_address(&self, id: String) -> Result<Address, AddressError> {
         let (street_number, street_name) = street_number_and_street_name(&self.line_4);
         let (post_box, city_location_name) = post_box_and_city_location_name(&self.line_5);
         let (postal_code, city) = postal_code_and_city(&self.line_6);
@@ -61,21 +59,30 @@ impl FrenchAddress {
         })
     }
 
-    fn is_valid(&self) -> bool {
+    fn validate(&self) -> Result<(), AddressError> {
         let max_field_length = 38;
+        let fields = [
+            ("line_1", &self.line_1),
+            ("line_2", &self.line_2),
+            ("line_3", &self.line_3),
+            ("line_4", &self.line_4),
+            ("line_5", &self.line_5),
+            ("line_6", &self.line_6),
+            ("line_7", &self.line_7),
+        ];
 
-        if self.line_1.chars().count() > max_field_length
-            || self.line_2.chars().count() > max_field_length
-            || self.line_3.chars().count() > max_field_length
-            || self.line_4.chars().count() > max_field_length
-            || self.line_5.chars().count() > max_field_length
-            || self.line_6.chars().count() > max_field_length
-            || self.line_7.chars().count() > max_field_length
-        {
-            return false;
+        for (name, value) in fields {
+            let len = value.chars().count();
+            if len > max_field_length {
+                return Err(AddressError::ValidationError {
+                    field: name.to_string(),
+                    max: max_field_length,
+                    actual: len,
+                });
+            }
         }
 
-        true
+        Ok(())
     }
 }
 
