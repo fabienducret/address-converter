@@ -1,3 +1,4 @@
+use crate::domain::error::AddressError;
 use crate::domain::model::address::Address;
 use crate::domain::ports::secondary::address_repository::AddressRepository;
 use std::fs;
@@ -14,8 +15,13 @@ impl FileAddressRepository {
         FileAddressRepository { file_path }
     }
 
-    fn get_all(&self) -> Result<Vec<Address>, std::io::Error> {
-        let data = fs::read_to_string(self.file_path.clone())?;
+    fn get_all(&self) -> Result<Vec<Address>, AddressError> {
+        let data = fs::read_to_string(self.file_path.clone()).map_err(|e| {
+            AddressError::RepositoryError {
+                operation: String::from("lecture"),
+                source: e,
+            }
+        })?;
 
         if data.is_empty() {
             return Ok(vec![]);
@@ -28,9 +34,12 @@ impl FileAddressRepository {
 }
 
 impl AddressRepository for FileAddressRepository {
-    fn save(&self, address: Address) -> std::io::Result<()> {
+    fn save(&self, address: Address) -> Result<(), AddressError> {
         if file_does_not_exist(&self.file_path) {
-            get_or_create_file(&self.file_path)?;
+            get_or_create_file(&self.file_path).map_err(|e| AddressError::RepositoryError {
+                operation: String::from("création"),
+                source: e,
+            })?;
         }
 
         let mut addresses: Vec<Address> = self.get_all()?;
@@ -53,12 +62,18 @@ fn get_or_create_file(file_path: &str) -> std::io::Result<File> {
         .open(file_path)
 }
 
-fn write_to_file(file_path: &str, addresses: Vec<Address>) -> std::io::Result<()> {
-    let file = get_or_create_file(file_path)?;
+fn write_to_file(file_path: &str, addresses: Vec<Address>) -> Result<(), AddressError> {
+    let file = get_or_create_file(file_path).map_err(|e| AddressError::RepositoryError {
+        operation: String::from("écriture"),
+        source: e,
+    })?;
     let mut writer = BufWriter::new(file);
 
     serde_json::to_writer(&mut writer, &addresses)?;
-    writer.flush()?;
+    writer.flush().map_err(|e| AddressError::RepositoryError {
+        operation: String::from("flush"),
+        source: e,
+    })?;
 
     Ok(())
 }

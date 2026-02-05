@@ -1,5 +1,5 @@
+use crate::domain::error::AddressError;
 use serde::{Deserialize, Serialize};
-use std::io::{Error, ErrorKind};
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub enum Country {
@@ -19,10 +19,12 @@ impl Country {
         }
     }
 
-    pub fn from(country: &str) -> Result<Country, Error> {
+    pub fn from(country: &str) -> Result<Country, AddressError> {
         match country {
             "France" | "FR" => Ok(Country::FR),
-            _ => Err(Error::new(ErrorKind::InvalidInput, "Invalid country")),
+            _ => Err(AddressError::InvalidCountry {
+                value: country.to_string(),
+            }),
         }
     }
 }
